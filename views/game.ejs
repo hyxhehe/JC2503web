@@ -7,14 +7,9 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <a class="skip-link" href="#main-content">Skip to main content</a>
-
   <header class="site-header">
-    <div class="container header-inner">
-      <div class="brand-block">
-        <p class="eyebrow">Live Session</p>
-        <h1>Multiplayer Puzzle Game</h1>
-      </div>
+    <div class="container">
+      <h1>Multiplayer Puzzle Game</h1>
       <nav aria-label="Main navigation">
         <ul class="nav-list">
           <li><a href="/">Introduction</a></li>
@@ -26,16 +21,27 @@
   </header>
 
   <main id="main-content" class="container game-page">
-    <section class="card hero-card game-hero">
-      <p class="eyebrow">How It Works</p>
-      <h2>Take turns placing assigned blocks on the shared 4x4 board</h2>
-      <p>New players can join at any time. During your turn, place your assigned block before the timeout expires.</p>
-      <div class="hero-meta">
-        <span class="meta-chip">Turn timeout: 60s</span>
-        <span class="meta-chip">Pool size: 16 blocks</span>
-        <span class="meta-chip">Real-time sync</span>
-      </div>
-    </section>
+
+<!-- 👇 你要的新版规则说明，已经放这里了 -->
+<section class="card hero-card game-hero">
+  <h2 style="margin:0; font-size: 24px; font-weight: bold;">Game Overview</h2>
+  <h2 style="margin:0; margin-top:8px; font-size: 24px; font-weight: bold;">Multiplayer Turn-Based Block Placement</h2>
+  <p style="margin-top:16px;">This is a real-time multiplayer game where players compete by placing blocks on a shared 4×4 grid.</p>
+  <div class="hero-meta">
+    <div class="meta-item">
+      <strong>Turn-based Play:</strong> Players take turns placing their assigned block.
+    </div>
+    <div class="meta-item">
+      <strong>Turn Timeout:</strong> 60 seconds per turn. Expired turns result in automatic skip.
+    </div>
+    <div class="meta-item">
+      <strong>Shared Block Pool:</strong> 16 unique blocks are available for all players.
+    </div>
+    <div class="meta-item">
+      <strong>Real-time Sync:</strong> All game actions are instantly broadcast to every player.
+    </div>
+  </div>
+</section>
 
     <section class="card join-card" aria-label="Join controls">
       <div class="join-row">
@@ -85,7 +91,7 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <p>The game continues until the server stops. Join at any time, wait for your turn, and place your assigned block on an empty cell.</p>
+      <p>🎈Take your time, enjoy the game, and savor every moment of fun ✨💛🌟</p>
     </div>
   </footer>
 
