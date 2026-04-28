@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JC2503 Coursework - Multiplayer Puzzle Game</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand-block">
+        <p class="eyebrow">Live Session</p>
+        <h1>Multiplayer Puzzle Game</h1>
+      </div>
+      <nav aria-label="Main navigation">
+        <ul class="nav-list">
+          <li><a href="/">Introduction</a></li>
+          <li><a href="/about">About</a></li>
+          <li><a href="/game" class="active">Game</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main-content" class="container game-page">
+    <section class="card hero-card game-hero">
+      <p class="eyebrow">How It Works</p>
+      <h2>Take turns placing assigned blocks on the shared 4x4 board</h2>
+      <p>New players can join at any time. During your turn, place your assigned block before the timeout expires.</p>
+      <div class="hero-meta">
+        <span class="meta-chip">Turn timeout: 60s</span>
+        <span class="meta-chip">Pool size: 16 blocks</span>
+        <span class="meta-chip">Real-time sync</span>
+      </div>
+    </section>
+
+    <section class="card join-card" aria-label="Join controls">
+      <div class="join-row">
+        <div class="join-controls">
+          <label for="playerName">Display Name</label>
+          <input id="playerName" name="playerName" type="text" maxlength="24" placeholder="Enter your name">
+        </div>
+        <div class="join-actions">
+          <button id="joinBtn" type="button">Join Game</button>
+          <button id="leaveBtn" class="secondary-btn" type="button" disabled>Leave Game</button>
+        </div>
+      </div>
+      <p id="joinStatus" class="hint">Please enter a name to join the active player list. New players can join while a game is already in progress.</p>
+    </section>
+
+    <section class="game-stage">
+      <article class="panel board-panel">
+        <h2>Game Board</h2>
+        <p id="turnInfo" class="turn-banner">Waiting for players...</p>
+        <div class="current-piece-panel">
+          <div id="currentBlock" class="current-piece empty">No block assigned</div>
+          <p id="deadlineInfo" class="hint"></p>
+        </div>
+        <div id="board" class="board" aria-label="Shared 4 by 4 game board"></div>
+      </article>
+
+      <aside class="side-stack">
+        <article class="panel pool-panel">
+          <h2>Shared Pool</h2>
+          <div id="poolGrid" class="pool-grid" aria-label="Available block pool"></div>
+          <p id="poolInfo" class="hint">Pool blocks: 16</p>
+          <p class="hint">The pool contains 16 unique blocks built from four shapes and four colours.</p>
+        </article>
+
+        <article class="panel info-panel">
+          <h2>Player Order and Scores</h2>
+          <ul id="scoreboard" class="score-list"></ul>
+        </article>
+
+        <article class="panel info-panel">
+          <h2>Game Messages</h2>
+          <ul id="messages" class="message-list" aria-live="polite"></ul>
+        </article>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>The game continues until the server stops. Join at any time, wait for your turn, and place your assigned block on an empty cell.</p>
+    </div>
+  </footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/game.js"></script>
+</body>
+</html>

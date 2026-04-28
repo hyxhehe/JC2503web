@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JC2503 Coursework Report</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .report-wrap {
+      max-width: 980px;
+    }
+    .report-card h1 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      color: var(--primary-dark);
+    }
+    .report-card h2 {
+      margin-top: 1.6rem;
+      margin-bottom: 0.7rem;
+      color: var(--primary-dark);
+      font-size: 1.45rem;
+    }
+    .report-card p {
+      margin: 0.7rem 0;
+    }
+    .report-card table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      background: #fff;
+    }
+    .report-card th,
+    .report-card td {
+      border: 1px solid #d6d8de;
+      padding: 0.6rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    .report-card th {
+      background: #eef2fa;
+      color: var(--primary-dark);
+    }
+    .report-small {
+      font-size: 0.96rem;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <h1>JC2503 Web Application Coursework</h1>
+      <nav aria-label="Main navigation">
+        <ul class="nav-list">
+          <li><a href="/">Introduction</a></li>
+          <li><a href="/about">About</a></li>
+          <li><a href="/game">Game</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container report-wrap">
+    <section class="card report-card">
+      <h1>JC2503 Project Report: Real-time Multiplayer Puzzle Website</h1>
+
+      <h2>1. Website Design and Structure</h2>
+      <p>
+        This coursework implements a three-page website according to the JC2503 assignment brief: Introduction page
+        (root), About page, and Game page. The Introduction and About pages present personal and academic information,
+        while the Game page contains the interactive multi-user puzzle application. All pages use semantic HTML5
+        structure (header, nav, main, section/article, footer) and share the same navigation model so users can move
+        between pages without losing context. The layout and style are implemented using one consistent CSS file under
+        <code>public/css/style.css</code>, which supports desktop and mobile screen sizes.
+      </p>
+      <p>
+        The web server is built with Express and EJS templates. Static assets are served from the public directory,
+        and routes are provided for <code>/</code>, <code>/about</code>, <code>/game</code>, and
+        <code>/report.html</code>. The report is intentionally implemented as a standalone page, as required by the
+        brief. The design prioritises usability over visual complexity: readable contrast, clear spacing, and
+        predictable information grouping. On the Game page, the interface is organised into board, shared pool, score,
+        and message areas, so turn-based status remains understandable during multiplayer play.
+      </p>
+
+      <h2>2. Game Application Logic and Socket.IO Communication</h2>
+      <p>
+        The game logic is server-authoritative and persistent in memory. The server stores the shared 4x4 board
+        (16 cells), the pool of available blocks, active players, turn index, current turn assignment, and scoreboard.
+        The block set contains exactly 16 unique combinations generated from 4 shapes and 4 colours. At game start the
+        board is empty and all 16 blocks are in the pool, matching the assignment specification.
+      </p>
+      <p>
+        Turn handling follows strict cyclic order. When a turn starts, the server selects one block uniformly at random
+        from the current pool and assigns it only to the active player. The active player can place that block in one
+        empty cell; after placement, turn processing happens immediately. The server then checks contiguous lines of
+        length 3 or more (horizontal, vertical, and both diagonals) for either equal shape or equal colour. All matched
+        cells are removed, corresponding blocks are returned to the pool, and the acting player receives one point per
+        removed block. If the board becomes full right after placement, the server clears the whole board, returns all
+        blocks to the pool, and awards a 16-point jackpot to that player. The game never terminates by itself.
+      </p>
+      <p>
+        The multiplayer flow supports dynamic join and leave. New players are appended to the end of turn order.
+        Disconnect or 60-second turn timeout is treated as departure, and turn order is recalculated so the game
+        continues for remaining players.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Direction</th>
+            <th>Purpose in Implementation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>player-join</td>
+            <td>Client to Server, then broadcast</td>
+            <td>Register display name and append player to active queue.</td>
+          </tr>
+          <tr>
+            <td>player-leave</td>
+            <td>Server to Clients</td>
+            <td>Notify manual leave, disconnect, or timeout removal.</td>
+          </tr>
+          <tr>
+            <td>turn-start</td>
+            <td>Server to Clients</td>
+            <td>Announce current player and deadline for this turn.</td>
+          </tr>
+          <tr>
+            <td>place-block</td>
+            <td>Client to Server, then broadcast</td>
+            <td>Submit placement and sync move information to all clients.</td>
+          </tr>
+          <tr>
+            <td>clear-score</td>
+            <td>Server to Clients</td>
+            <td>Report cleared cells and awarded points.</td>
+          </tr>
+          <tr>
+            <td>board-full</td>
+            <td>Server to Clients</td>
+            <td>Report full-board clear and 16-point jackpot.</td>
+          </tr>
+          <tr>
+            <td>game-state</td>
+            <td>Server to Clients</td>
+            <td>Send synchronized full state (board, pool, players, scores, turn).</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        Validation is performed on every action request: only the active turn owner can place, only empty cells are
+        legal, and invalid payloads are rejected with an error event.
+      </p>
+
+      <h2>3. Reflection: Challenges and Lessons Learned</h2>
+      <p>
+        The most challenging part was maintaining correct turn order under real-world multiplayer changes. A naive
+        queue works in simple cases, but can break when a current player disconnects or when players are removed at
+        different positions in the list. I solved this by centralising turn transition logic and recalculating the next
+        valid index after each join/leave/timeout action.
+      </p>
+      <p>
+        Another challenge was implementing line clearing correctly. One placement can trigger more than one line at the
+        same time (for example, horizontal and diagonal). The solution was directional scanning around the placed cell
+        and merging results into a set so each block is counted at most once. This ensures scoring accuracy and avoids
+        duplicate removals.
+      </p>
+      <p>
+        Overall, this project strengthened my understanding of full-stack web application design and the separation of
+        responsibilities: server decides authoritative state and rules, while clients focus on rendering and user
+        interaction. It also improved my debugging discipline in event-driven systems.
+      </p>
+
+      <h2>4. References</h2>
+      <p class="report-small">
+        1) Express Documentation:
+        <a href="https://expressjs.com/" target="_blank" rel="noopener noreferrer">https://expressjs.com/</a><br>
+        2) Socket.IO v4 Documentation:
+        <a href="https://socket.io/docs/v4/" target="_blank" rel="noopener noreferrer">https://socket.io/docs/v4/</a><br>
+        3) Node.js Documentation:
+        <a href="https://nodejs.org/docs/latest/api/" target="_blank" rel="noopener noreferrer">https://nodejs.org/docs/latest/api/</a><br>
+        4) MDN Web Docs (HTML, CSS, JavaScript):
+        <a href="https://developer.mozilla.org/" target="_blank" rel="noopener noreferrer">https://developer.mozilla.org/</a><br>
+        5) W3C Markup Validation Service:
+        <a href="https://validator.w3.org/" target="_blank" rel="noopener noreferrer">https://validator.w3.org/</a><br>
+        6) W3C CSS Validation Service:
+        <a href="https://jigsaw.w3.org/css-validator/" target="_blank" rel="noopener noreferrer">https://jigsaw.w3.org/css-validator/</a>
+      </p>
+
+      <h2>5. GenAI Acknowledgement</h2>
+      <p>
+        I used generative AI tools only as an assistant for wording improvement, checking alternative implementation
+        ideas, and debugging hints. The final architecture, game-rule implementation, integration decisions, testing,
+        and report structure were completed and verified by myself.
+      </p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>JC2503 Coursework Report Page</p>
+    </div>
+  </footer>
+</body>
+</html>
