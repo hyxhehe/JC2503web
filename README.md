@@ -1,99 +1,59 @@
+# JC2503 Web Multiplayer Puzzle Game
 
-# 🎮 JC2503 Web 多人方块对战游戏
+A real-time multiplayer coursework project built with Node.js, Express, EJS, and Socket.IO.
 
-一个基于 Node.js + Express + WebSocket 的实时多人在线游戏项目，支持多玩家同时在线、回合制对战、自动超时移除与实时分数统计。
+## Project Summary
+This project implements the JC2503 assignment requirements with a turn-based 4x4 puzzle game:
+- Players join with a display name and enter the turn queue
+- Players place blocks on a shared 4x4 board in strict turn order
+- Turn timeout (60s) removes inactive players automatically
+- Game events and state are synchronized in real time across clients
+- Scores and player order are updated continuously
 
----
+## Tech Stack
+- Backend: Node.js + Express
+- Real-time communication: Socket.IO
+- Templating: EJS
+- Styling: CSS
 
-## 📌 项目简介
-本项目是 JC2503 Web 应用开发课程的期末作业，实现了一个多人在线回合制方块放置游戏：
-- 玩家进入房间后自动加入回合队列
-- 按回合轮流在 4×4 棋盘上放置方块
-- 超时玩家会被自动移除，回合自动流转
-- 实时广播游戏事件（玩家加入/离开、回合提示、超时通知）
-- 支持多用户同时在线，状态实时同步
-
----
-
-## 🛠️ 技术栈
-- **后端**：Node.js + Express
-- **实时通信**：WebSocket (`ws` 库)
-- **前端渲染**：EJS 模板引擎
-- **样式**：原生 CSS
-- **版本控制**：Git + GitHub
-
----
-
-## 🚀 快速启动
-
-### 1. 安装依赖
+## Quick Start
+1. Install dependencies:
 ```bash
 npm install
 ```
 
-### 2. 启动服务器
+2. Start server:
 ```bash
-node server.js
+npm start
 ```
 
-### 3. 访问游戏
-打开浏览器，访问：
+3. Open in browser:
+```text
+http://localhost:8080
 ```
-http://localhost:3000
-```
 
----
+## Core Features
+- Multiplayer online gameplay
+- Turn-based game flow
+- Automatic timeout removal (60 seconds)
+- Real-time event messages
+- Live scoreboard and turn order
+- Manual leave and disconnect handling
+- Responsive UI
 
-## 🎯 核心功能
-- ✅ 多玩家同时在线
-- ✅ 回合制对战系统
-- ✅ 玩家超时自动移除（60 秒）
-- ✅ 实时游戏事件通知（Game Messages）
-- ✅ 玩家分数与回合顺序展示
-- ✅ 主动 / 被动退出处理
-- ✅ 响应式游戏界面
-
----
-
-## 📁 项目结构
-```
+## Project Structure
+```text
 game_project/
 ├── public/
 │   ├── css/
-│   │   └── style.css       # 游戏界面样式
+│   │   └── style.css
 │   └── js/
-│       └── game.js         # 前端游戏逻辑与 WebSocket 通信
+│       └── game.js
 ├── views/
-│   ├── index.ejs           # 首页
-│   ├── game.ejs            # 游戏主界面
-│   └── about.ejs           # 项目说明页
-├── server.js               # 后端服务器与 WebSocket 核心逻辑
-├── package.json            # 项目依赖配置
-└── README.md               # 项目说明文档
+│   ├── index.ejs
+│   ├── about.ejs
+│   └── game.ejs
+├── server.js
+├── report.html
+└── package.json
 ```
-
----
-
-## 📝 作业说明
-本项目严格遵循 JC2503 课程作业要求，实现了所有指定功能：
-- 实时多人游戏逻辑
-- 玩家状态同步
-- 游戏事件通知
-- 超时与退出处理
-- 界面交互与用户体验优化
-
----
-
-## 👨‍💻 开发者
-hyxhehe
-```
-### 使用步骤（Markdown 操作）
-1. 在项目根目录新建文件，命名为 `README.md`
-2. 复制上方全部内容，粘贴到文件中
-3. 保存文件后，在终端执行以下命令同步到 GitHub：
-```bash
-git add README.md
-git commit -m "add project README"
-git push
-```
-

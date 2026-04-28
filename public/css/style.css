@@ -103,6 +103,20 @@ main {
   gap: 1rem;
 }
 
+.game-hero-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.game-hero-subtitle {
+  margin-top: 8px;
+}
+
+.game-hero-intro {
+  margin-top: 16px;
+}
+
 .join-card {
   background: linear-gradient(135deg, #fffefb 0%, #f4ede2 100%);
 }
