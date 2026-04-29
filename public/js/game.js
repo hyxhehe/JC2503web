@@ -37,6 +37,8 @@
   let latestState = null;
   let recentPlacedCell = null;
   let recentClearedCells = [];
+  let temporaryTurnMessage = null;
+  let temporaryTurnMessageTimer = null;
 
   function setJoinControls(isJoined, playerNames) {
     joinBtn.disabled = false;
@@ -78,6 +80,46 @@
     );
   }
 
+  function spawnPlacementConfetti(clientX, clientY) {
+    const colors = ["#ff6b6b", "#ff9f43", "#ffe66d", "#6bffb0", "#5edfff", "#6c8cff", "#c77dff"];
+    const burst = document.createElement("div");
+    burst.className = "placement-confetti-burst";
+    burst.style.left = `${clientX}px`;
+    burst.style.top = `${clientY}px`;
+    document.body.appendChild(burst);
+
+    const particleCount = 24;
+    for (let index = 0; index < particleCount; index += 1) {
+      const particle = document.createElement("span");
+      particle.className = "placement-confetti-particle";
+
+      const baseAngle = (360 / particleCount) * index;
+      const angle = baseAngle + (Math.random() * 18 - 9);
+      const distance = 46 + Math.random() * 42;
+      const driftX = Math.cos((angle * Math.PI) / 180) * distance;
+      const driftY = Math.sin((angle * Math.PI) / 180) * distance;
+      const rotation = Math.random() * 520 - 260;
+      const delay = Math.random() * 40;
+      const width = 8 + Math.random() * 12;
+      const height = 4 + Math.random() * 6;
+      const color = colors[index % colors.length];
+
+      particle.style.width = `${width}px`;
+      particle.style.height = `${height}px`;
+      particle.style.background = `linear-gradient(135deg, ${color}, rgba(255, 255, 255, 0.88))`;
+      particle.style.boxShadow = `0 0 12px ${color}`;
+      particle.style.setProperty("--drift-x", `${driftX.toFixed(2)}px`);
+      particle.style.setProperty("--drift-y", `${driftY.toFixed(2)}px`);
+      particle.style.setProperty("--rotation", `${rotation.toFixed(2)}deg`);
+      particle.style.animationDelay = `${delay.toFixed(0)}ms`;
+      burst.appendChild(particle);
+    }
+
+    window.setTimeout(() => {
+      burst.remove();
+    }, 1200);
+  }
+
   function clearBoardHighlights() {
     recentPlacedCell = null;
     recentClearedCells = [];
@@ -101,6 +143,28 @@
     while (messagesEl.children.length > 40) {
       messagesEl.removeChild(messagesEl.lastChild);
     }
+  }
+
+  function clearTemporaryTurnMessage() {
+    if (temporaryTurnMessageTimer) {
+      window.clearTimeout(temporaryTurnMessageTimer);
+      temporaryTurnMessageTimer = null;
+    }
+    temporaryTurnMessage = null;
+  }
+
+  function setTemporaryTurnMessage(text, type, durationMs) {
+    clearTemporaryTurnMessage();
+    temporaryTurnMessage = {
+      text,
+      type: type || "default",
+    };
+    renderTurnInfo();
+    temporaryTurnMessageTimer = window.setTimeout(() => {
+      temporaryTurnMessage = null;
+      temporaryTurnMessageTimer = null;
+      renderTurnInfo();
+    }, durationMs || 1800);
   }
 
   function getMe() {
@@ -169,6 +233,17 @@
   }
 
   function renderTurnInfo() {
+    turnInfo.classList.remove("turn-banner-success");
+
+    if (temporaryTurnMessage) {
+      turnInfo.textContent = temporaryTurnMessage.text;
+      if (temporaryTurnMessage.type === "success") {
+        turnInfo.classList.add("turn-banner-success");
+      }
+      deadlineInfo.textContent = "";
+      return;
+    }
+
     if (!latestState || !latestState.currentPlayerName) {
       turnInfo.textContent = "Waiting for players...";
       deadlineInfo.textContent = "";
@@ -218,13 +293,14 @@
         cellBtn.innerHTML = createShapeMarkup(block, 48, false);
       }
 
-      cellBtn.addEventListener("click", () => {
+      cellBtn.addEventListener("click", (event) => {
         if (!canPlace || pendingPlacement) {
           return;
         }
         pendingPlacement = true;
         recentPlacedCell = index;
         recentClearedCells = [];
+        spawnPlacementConfetti(event.clientX, event.clientY);
         socket.emit("place-block", { cellIndex: index });
         renderBoard(board);
       });
@@ -276,6 +352,8 @@
     latestState = null;
     pendingPlacement = false;
     clearBoardHighlights();
+    clearTemporaryTurnMessage();
+    turnInfo.classList.remove("turn-banner-success");
     turnInfo.textContent = "Waiting for players...";
     deadlineInfo.textContent = "";
     currentBlockEl.classList.add("empty");
@@ -352,6 +430,12 @@
     recentPlacedCell = payload.cellIndex;
     recentClearedCells = [];
     scheduleHighlightReset();
+
+    const controlledIds = (latestState && latestState.controlledPlayerIds) || [];
+    if (controlledIds.includes(payload.player.id)) {
+      setTemporaryTurnMessage("Thank you! Next player's turn...", "default");
+    }
+
     pushMessage(
       `${payload.player.name} placed a ${payload.block.color.toLowerCase()} ${payload.block.shape.toLowerCase()} block on cell ${payload.cellIndex + 1}.`,
       "message-system"
@@ -361,6 +445,16 @@
   socket.on("clear-score", (payload) => {
     recentClearedCells = payload.clearedCells.slice();
     scheduleHighlightReset();
+
+    const controlledIds = (latestState && latestState.controlledPlayerIds) || [];
+    if (controlledIds.includes(payload.player.id)) {
+      const pointsLabel = payload.pointsAwarded === 1 ? "point" : "points";
+      setTemporaryTurnMessage(
+        `Congratulations! You earned ${payload.pointsAwarded} ${pointsLabel}.`,
+        "success"
+      );
+    }
+
     pushMessage(
       `${payload.player.name} earned ${payload.pointsAwarded} point(s) by clearing ${payload.clearedCells.length} block(s).`,
       "message-good"
@@ -368,6 +462,11 @@
   });
 
   socket.on("board-full", (payload) => {
+    const controlledIds = (latestState && latestState.controlledPlayerIds) || [];
+    if (controlledIds.includes(payload.player.id)) {
+      setTemporaryTurnMessage("Congratulations! You earned 16 points.", "success");
+    }
+
     pushMessage(
       `${payload.player.name} filled the board and received the 16-point jackpot. The board has been cleared.`,
       "message-good"

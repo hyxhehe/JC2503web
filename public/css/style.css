@@ -236,6 +236,11 @@ button:focus-visible,
   font-size: 1.8rem;
   font-weight: 800;
   color: var(--primary-dark);
+  transition: color 0.2s ease;
+}
+
+.turn-banner-success {
+  color: var(--success);
 }
 
 .current-piece-panel {
@@ -302,46 +307,28 @@ button:focus-visible,
 }
 
 .cell.placed-flash::after {
-  content: "";
-  position: absolute;
-  width: 72px;
-  height: 72px;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  background:
-    radial-gradient(circle, transparent 0 10px, #1a1a1a 10px 12px, transparent 12px),
-    linear-gradient(#1a1a1a, #1a1a1a),
-    linear-gradient(#1a1a1a, #1a1a1a),
-    linear-gradient(#1a1a1a, #1a1a1a),
-    linear-gradient(#1a1a1a, #1a1a1a),
-    linear-gradient(#1a1a1a, #1a1a1a),
-    linear-gradient(#1a1a1a, #1a1a1a),
-    linear-gradient(#1a1a1a, #1a1a1a),
-    linear-gradient(#1a1a1a, #1a1a1a);
-  background-repeat: no-repeat;
-  background-size:
-    72px 72px,
-    3px 24px,
-    3px 24px,
-    24px 3px,
-    24px 3px,
-    3px 18px,
-    3px 18px,
-    18px 3px,
-    18px 3px;
-  background-position:
-    center,
-    50% 0,
-    50% 100%,
-    0 50%,
-    100% 50%,
-    18% 18%,
-    82% 82%,
-    18% 82%,
-    82% 18%;
+  content: none;
+}
+
+.placement-confetti-burst {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
   pointer-events: none;
-  animation: click-burst 0.45s ease-out forwards;
+  z-index: 30;
+}
+
+.placement-confetti-particle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 999px;
+  opacity: 0;
+  filter: saturate(1.08) blur(0.2px);
+  transform: translate(-50%, -50%) rotate(0deg) scale(0.35);
+  animation: confetti-burst 0.82s cubic-bezier(0.2, 0.78, 0.24, 1) forwards;
 }
 
 .cell.cleared-flash {
@@ -419,6 +406,30 @@ button:focus-visible,
 
 .shape-svg {
   display: block;
+}
+
+@keyframes confetti-burst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.18);
+  }
+
+  14% {
+    opacity: 0.98;
+    transform: translate(-50%, -50%) rotate(calc(var(--rotation) * 0.18)) scale(0.9);
+  }
+
+  68% {
+    opacity: 0.88;
+  }
+
+  100% {
+    opacity: 0;
+    transform:
+      translate(calc(-50% + var(--drift-x)), calc(-50% + var(--drift-y)))
+      rotate(var(--rotation))
+      scale(1);
+  }
 }
 
 @keyframes click-burst {
