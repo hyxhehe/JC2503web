@@ -293,6 +293,16 @@ io.on("connection", (socket) => {
       socket.emit("error-message", { message: "Please enter a valid player name." });
       return;
     }
+    const duplicatedName = players.some(
+      (player) => player.name.toLowerCase() === name.toLowerCase()
+    );
+    if (duplicatedName) {
+      socket.emit("error-message", {
+        code: "DUPLICATE_PLAYER_NAME",
+        message: "该玩家名已被使用",
+      });
+      return;
+    }
 
     const player = {
       id: `player-${Date.now()}-${playerSequence += 1}`,

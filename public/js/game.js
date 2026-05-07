@@ -475,6 +475,9 @@
 
   socket.on("error-message", (payload) => {
     pendingPlacement = false;
+    if (payload && payload.code === "DUPLICATE_PLAYER_NAME") {
+      window.alert("该玩家名已被使用");
+    }
     pushMessage(payload.message, "message-alert");
   });
 
