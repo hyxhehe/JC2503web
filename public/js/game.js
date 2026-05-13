@@ -142,6 +142,10 @@
   }
 
   function pushMessage(text, type) {
+    if (!messagesEl) {
+      return;
+    }
+
     const li = document.createElement("li");
     li.textContent = text;
     li.className = type || "message-system";
@@ -495,7 +499,7 @@
   socket.on("error-message", (payload) => {
     pendingPlacement = false;
     if (payload && payload.code === "DUPLICATE_PLAYER_NAME") {
-      window.alert("该玩家名已被使用");
+      window.alert("This player name is already in use.");
     }
     pushMessage(payload.message, "message-alert");
   });

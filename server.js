@@ -324,7 +324,7 @@ io.on("connection", (socket) => {
     if (duplicatedName) {
       socket.emit("error-message", {
         code: "DUPLICATE_PLAYER_NAME",
-        message: "该玩家名已被使用",
+        message: "This player name is already in use.",
       });
       return;
     }
