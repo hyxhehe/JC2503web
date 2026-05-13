@@ -33,9 +33,10 @@ for (const color of COLORS) {
 }
 
 const blockById = Object.fromEntries(blocks.map((block) => [block.id, block]));
+const DEFAULT_POOL_IDS = blocks.map((block) => block.id);
 
 let board = Array(CELL_COUNT).fill(null);
-let pool = blocks.map((block) => block.id);
+let pool = [...DEFAULT_POOL_IDS];
 const players = [];
 let turnIndex = -1;
 let currentTurn = null;
@@ -54,7 +55,7 @@ app.get("/report.html", (_req, res) => res.sendFile(path.join(__dirname, "report
 
 function resetGameState() {
   board = Array(CELL_COUNT).fill(null);
-  pool = blocks.map((block) => block.id);
+  pool = [...DEFAULT_POOL_IDS];
   turnIndex = -1;
   currentTurn = null;
   clearTurnTimer();
@@ -80,38 +81,56 @@ function getBoardPublic() {
 }
 
 function getPoolPublic() {
+  const availableIds = new Set(pool);
   return blocks.map((block) => ({
     ...block,
-    available: pool.includes(block.id),
+    available: availableIds.has(block.id),
   }));
+}
+
+function getCurrentTurnPlayer() {
+  if (!currentTurn) {
+    return null;
+  }
+  return players.find((player) => player.id === currentTurn.playerId) || null;
+}
+
+function emitStateToSocket(socket, sharedState) {
+  const currentPlayer = sharedState.currentPlayer;
+  const yourBlock =
+    currentPlayer && currentPlayer.socketId === socket.id ? blockById[currentTurn.blockId] : null;
+  const controlledPlayers = players
+    .filter((player) => player.socketId === socket.id)
+    .map((player) => player.id);
+
+  socket.emit("game-state", {
+    board: sharedState.board,
+    players: sharedState.players,
+    poolBlocks: sharedState.poolBlocks,
+    poolCount: sharedState.poolCount,
+    controlledPlayerIds: controlledPlayers,
+    currentPlayerId: currentPlayer ? currentPlayer.id : null,
+    currentPlayerName: currentPlayer ? currentPlayer.name : null,
+    turnDeadlineAt: currentTurn ? currentTurn.deadlineAt : null,
+    yourBlock,
+  });
 }
 
 function emitGameState() {
   const boardPublic = getBoardPublic();
   const playersPublic = getPlayersPublic();
   const poolPublic = getPoolPublic();
-  const currentPlayer = currentTurn
-    ? players.find((player) => player.id === currentTurn.playerId) || null
-    : null;
+  const currentPlayer = getCurrentTurnPlayer();
+  const sharedState = {
+    board: boardPublic,
+    players: playersPublic,
+    poolBlocks: poolPublic,
+    poolCount: pool.length,
+    currentPlayer,
+  };
 
-  for (const [socketId, socket] of io.of("/").sockets) {
-    const yourBlock =
-      currentPlayer && currentPlayer.socketId === socketId ? blockById[currentTurn.blockId] : null;
-    const controlledPlayers = players
-      .filter((player) => player.socketId === socketId)
-      .map((player) => player.id);
-
-    socket.emit("game-state", {
-      board: boardPublic,
-      players: playersPublic,
-      poolBlocks: poolPublic,
-      poolCount: pool.length,
-      controlledPlayerIds: controlledPlayers,
-      currentPlayerId: currentPlayer ? currentPlayer.id : null,
-      currentPlayerName: currentPlayer ? currentPlayer.name : null,
-      turnDeadlineAt: currentTurn ? currentTurn.deadlineAt : null,
-      yourBlock,
-    });
+  for (const socket of io.of("/").sockets.values()) {
+    emitStateToSocket(socket, sharedState);
   }
 }
 
@@ -285,7 +304,13 @@ function removePlayersForSocket(socketId, reason) {
 }
 
 io.on("connection", (socket) => {
-  emitGameState();
+  emitStateToSocket(socket, {
+    board: getBoardPublic(),
+    players: getPlayersPublic(),
+    poolBlocks: getPoolPublic(),
+    poolCount: pool.length,
+    currentPlayer: getCurrentTurnPlayer(),
+  });
 
   socket.on("player-join", (payload) => {
     const name = sanitizeName(payload && payload.name);

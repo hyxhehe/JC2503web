@@ -39,6 +39,8 @@
   let recentClearedCells = [];
   let temporaryTurnMessage = null;
   let temporaryTurnMessageTimer = null;
+  let highlightResetTimer = null;
+  let turnCountdownTimer = null;
 
   function setJoinControls(isJoined, playerNames) {
     joinBtn.disabled = false;
@@ -126,11 +128,16 @@
   }
 
   function scheduleHighlightReset() {
-    window.setTimeout(() => {
+    if (highlightResetTimer) {
+      window.clearTimeout(highlightResetTimer);
+    }
+
+    highlightResetTimer = window.setTimeout(() => {
       clearBoardHighlights();
       if (latestState) {
         renderBoard(latestState.board || Array(16).fill(null));
       }
+      highlightResetTimer = null;
     }, 700);
   }
 
@@ -364,6 +371,18 @@
     renderBoard(Array(16).fill(null));
   }
 
+  function startTurnCountdown() {
+    if (turnCountdownTimer) {
+      window.clearInterval(turnCountdownTimer);
+    }
+
+    turnCountdownTimer = window.setInterval(() => {
+      if (latestState && latestState.turnDeadlineAt) {
+        renderTurnInfo();
+      }
+    }, 1000);
+  }
+
   joinBtn.addEventListener("click", () => {
     const name = playerNameInput.value.trim();
     if (!name) {
@@ -481,15 +500,25 @@
     pushMessage(payload.message, "message-alert");
   });
 
-  setInterval(() => {
-    if (latestState && latestState.turnDeadlineAt) {
-      renderTurnInfo();
-    }
-  }, 1000);
+  startTurnCountdown();
 
   window.addEventListener("pagehide", () => {
     if (getMe()) {
       socket.emit("leave-game");
+    }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    if (highlightResetTimer) {
+      window.clearTimeout(highlightResetTimer);
+      highlightResetTimer = null;
+    }
+
+    clearTemporaryTurnMessage();
+
+    if (turnCountdownTimer) {
+      window.clearInterval(turnCountdownTimer);
+      turnCountdownTimer = null;
     }
   });
 
