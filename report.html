@@ -80,24 +80,37 @@
 
     <h2>1. Overall Website Design</h2>
     <p>
-      This project is a small website with three main navigation pages (Introduction, About, and Game) and one standalone report page. The public-facing pages are rendered through EJS templates and served by an Express server. Static assets, including styles and client-side game logic, are served from the <code>public</code> directory.
+      The website contains three connected pages: Introduction, About, and Game. Introduction and About present personal content, while Game hosts the multiplayer application. The server uses Express with EJS templates and shared styling from <code>public/css/style.css</code>.
     </p>
     <p>
-      The report page is intentionally standalone and accessible directly through <code>/report.html</code>, without depending on the main site navigation flow. This keeps assessment content easy to reach in one URL while preserving the same visual language and readability approach used across the rest of the website.
+      A standalone report page is provided at <code>/report.html</code>. It is intentionally outside the main navigation flow, matching the assignment requirement that the report should be directly accessible by URL when the server runs at <code>localhost:8080</code>.
     </p>
 
-    <h2>2. Game Design</h2>
+    <h2>2. Game Design and Logic</h2>
     <p>
-      The game itself is a real-time, turn-based multiplayer puzzle on a 4 by 4 board. The core design principle is a server-authoritative state model. The server owns all game data (players, turn order, board cells, block pool, score, and timeout status), while the client is responsible for presentation and input. This separation reduces cheating risk, avoids state divergence between browsers, and keeps game rules consistent for all participants.
+      The game is a server-authoritative, turn-based multiplayer puzzle played on a shared 4×4 grid. The server stores all critical state: board cells, active player list, turn index, current turn assignment, scores, and available block pool. Clients only render state and submit user actions.
     </p>
     <p>
-      Gameplay uses a shared pool of 16 unique blocks built from four shapes and four colours. On each turn, one active player receives one random block from the pool and must place it on an empty cell before timeout. The score system rewards clearing lines of at least three matching blocks by colour or shape across horizontal, vertical, and diagonal directions. If a move fills the board, the board is cleared and the player receives a fixed jackpot.
+      The block set contains 16 unique combinations from four shapes and four colours. At each turn, the active player receives one randomly selected block from the current pool and places it on an empty cell. After placement, the server checks contiguous lines of three or more blocks with matching shape or colour in horizontal, vertical, or diagonal directions. Matched blocks are removed, returned to the pool, and points are awarded per removed block.
+    </p>
+    <p>
+      If placement makes the board full, the board is cleared, all blocks return to the pool, and the active player receives a 16-point jackpot.
     </p>
 
-    <h2>3. Client-Server Communication and Socket.IO Event Handling</h2>
+    <h2>3. Client-Server Communication and Socket.IO Events</h2>
     <p>
-      Socket.IO is used to support low-latency bidirectional communication. Event names are explicit, and each event has a clear responsibility. The communication pattern combines command events (client to server) and state/broadcast events (server to clients).
+      Socket.IO provides bidirectional, low-latency messaging for commands and broadcasts. Core command events from client to server are <code>player-join</code>, <code>leave-game</code>, and <code>place-block</code>. Core server events are <code>game-state</code>, <code>turn-start</code>, <code>player-join</code>, <code>player-leave</code>, <code>place-block</code>, <code>clear-score</code>, <code>board-full</code>, and <code>error-message</code>.
     </p>
+    <figure style="margin: 1rem 0; text-align: center;">
+      <img
+        src="/img/socket-sequence-preview.png"
+        alt="Socket.IO event sequence from player join to turn start, place block, score handling, and game-state synchronization"
+        style="max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px;"
+      >
+      <figcaption style="margin-top: 0.5rem; color: var(--muted);">
+        Figure 1. Simplified Socket.IO event sequence in one gameplay cycle.
+      </figcaption>
+    </figure>
 
     <table>
       <thead>
@@ -111,59 +124,54 @@
         <tr>
           <td><code>player-join</code></td>
           <td>Client -> Server</td>
-          <td>Request to join with a validated display name.</td>
+          <td>Join the active list with validated, unique display name.</td>
         </tr>
         <tr>
           <td><code>leave-game</code></td>
           <td>Client -> Server</td>
-          <td>Leave current controlled player when requested or page exits.</td>
+          <td>Leave one controlled player explicitly.</td>
         </tr>
         <tr>
           <td><code>place-block</code></td>
           <td>Client -> Server</td>
-          <td>Attempt to place the assigned block on one board cell.</td>
-        </tr>
-        <tr>
-          <td><code>game-state</code></td>
-          <td>Server -> Client</td>
-          <td>Authoritative synchronized snapshot including board, scores, pool, and per-client turn data.</td>
+          <td>Submit selected empty board cell during own turn.</td>
         </tr>
         <tr>
           <td><code>turn-start</code></td>
           <td>Server -> All Clients</td>
-          <td>Announce next active player and deadline timestamp.</td>
+          <td>Announce next player and turn deadline.</td>
         </tr>
         <tr>
-          <td><code>player-join</code>, <code>player-leave</code></td>
-          <td>Server -> All Clients</td>
-          <td>Notify lobby/order changes and reasons (left, timeout, disconnect).</td>
+          <td><code>game-state</code></td>
+          <td>Server -> Client</td>
+          <td>Send authoritative snapshot (board, players, pool, current turn context).</td>
         </tr>
         <tr>
-          <td><code>place-block</code>, <code>clear-score</code>, <code>board-full</code></td>
+          <td><code>clear-score</code>, <code>board-full</code></td>
           <td>Server -> All Clients</td>
-          <td>Broadcast move outcome, score updates, and full-board jackpot resolution.</td>
+          <td>Broadcast scoring outcomes and board/pool updates.</td>
         </tr>
         <tr>
           <td><code>error-message</code></td>
           <td>Server -> Client</td>
-          <td>Return validation or rule errors such as duplicate name or invalid move.</td>
+          <td>Return invalid action feedback.</td>
         </tr>
       </tbody>
     </table>
 
     <p>
-      The state synchronization strategy is snapshot-based. After each meaningful transition, the server emits updated state, and the client re-renders board, score list, pool visibility, and turn information. In addition, ephemeral events drive short UI feedback (for example message feed updates and placement highlights). This mixed strategy keeps logic simple: the snapshot guarantees correctness, while event-specific cues improve usability.
+      The synchronization approach is snapshot-first. After meaningful transitions, the server emits updated state for deterministic re-rendering. Event-specific broadcasts provide short-lived feedback (turn notices and score messages), while <code>game-state</code> remains the source of truth.
     </p>
 
-    <h2>4. Reflection: Challenges, Trade-offs, and Lessons Learned</h2>
+    <h2>4. Reflection: Challenges and Lessons Learned</h2>
     <p>
-      The main technical challenge was keeping multiplayer state coherent when users join, leave, timeout, or disconnect at arbitrary moments. In turn-based games, edge cases often appear in transition boundaries rather than in normal play. For example, removing a player who is currently active must update turn indices, clear timers safely, and immediately start the next valid turn without skipping users.
+      The most difficult part was reliable turn progression under frequent state changes: users can join, disconnect, timeout, or leave manually at any time. Correct handling requires synchronized updates of timers, turn index, and active-player arrays. If these updates are not consistent, the game can skip players or keep stale turns.
     </p>
     <p>
-      Another challenge was balancing user experience and implementation simplicity. Frequent full-state updates are straightforward and robust, but they can trigger repeated rendering logic on the client. During refinement, I improved maintainability by centralizing state emission and tightening timer lifecycle handling on the front end. These changes preserve behavior while reducing hidden complexity.
+      A second challenge was balancing clarity and responsiveness. Continuous full snapshots improve correctness and simplify debugging, but they increase render frequency on the client. To keep the user experience understandable, I separated persistent state rendering from temporary visual feedback such as placed-cell highlights and turn banners.
     </p>
     <p>
-      The most important lesson is that real-time applications benefit from explicit server authority and carefully named events. Separating permanent game state from temporary visual effects also makes debugging easier. Finally, small code quality improvements (deduplicating state send paths, preventing stale timers, and simplifying availability checks) can materially improve reliability without changing game rules.
+      The main lesson is that real-time web applications are easier to maintain when authority is centralized on the server and event responsibilities are explicit.
     </p>
 
     <h2>5. References and GenAI Acknowledgement</h2>
@@ -171,13 +179,13 @@
       <li>Node.js Documentation. <a href="https://nodejs.org/docs/latest/api/" target="_blank" rel="noopener noreferrer">https://nodejs.org/docs/latest/api/</a></li>
       <li>Express Documentation. <a href="https://expressjs.com/" target="_blank" rel="noopener noreferrer">https://expressjs.com/</a></li>
       <li>Socket.IO Documentation. <a href="https://socket.io/docs/v4/" target="_blank" rel="noopener noreferrer">https://socket.io/docs/v4/</a></li>
-      <li>MDN Web Docs (HTML, CSS, JavaScript, Web APIs, accessibility). <a href="https://developer.mozilla.org/" target="_blank" rel="noopener noreferrer">https://developer.mozilla.org/</a></li>
+      <li>MDN Web Docs. <a href="https://developer.mozilla.org/" target="_blank" rel="noopener noreferrer">https://developer.mozilla.org/</a></li>
       <li>EJS Documentation. <a href="https://ejs.co/" target="_blank" rel="noopener noreferrer">https://ejs.co/</a></li>
       <li>W3C HTML Validator. <a href="https://validator.w3.org/" target="_blank" rel="noopener noreferrer">https://validator.w3.org/</a></li>
       <li>W3C CSS Validator. <a href="https://jigsaw.w3.org/css-validator/" target="_blank" rel="noopener noreferrer">https://jigsaw.w3.org/css-validator/</a></li>
     </ol>
     <p>
-      GenAI acknowledgement: Generative AI was only used for proofreading and polishing the report, as well as checking for potential validation issues. All code, design, game logic, and implementation were completed independently.
+      GenAI acknowledgement: Generative AI was used only for proofreading and language polishing of the report. Game rules, architecture, and implementation decisions were completed independently.
     </p>
   </main>
 </body>

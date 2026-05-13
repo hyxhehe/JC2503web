@@ -36,7 +36,7 @@ http://localhost:8080
 - Multiplayer online gameplay
 - Turn-based game flow
 - Automatic timeout removal (60 seconds)
-- Real-time event messages
+- Real-time multiplayer state synchronization
 - Live scoreboard and turn order
 - Manual leave and disconnect handling
 - Responsive UI
